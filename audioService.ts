@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import { Language } from './translations';
 
 /**
@@ -52,7 +54,12 @@ class AudioService {
     const cacheKey = `${language}_${cardId}`;
 
     if (!this.audioCache.has(cacheKey)) {
-      const audio = new Audio(`/audio/${language}_${cardId}.mp3`);
+      // Use relative path to work with base URL in production
+      const basePath =
+        typeof import.meta.env !== 'undefined' && import.meta.env.BASE_URL
+          ? import.meta.env.BASE_URL
+          : '/';
+      const audio = new Audio(`${basePath}audio/${language}_${cardId}.mp3`);
       audio.volume = this.volume;
       this.audioCache.set(cacheKey, audio);
     }
