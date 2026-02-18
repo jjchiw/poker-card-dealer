@@ -93,7 +93,7 @@ export const translations: Record<Language, Translations> = {
       clubs: 'Clubs',
     },
     footer:
-      'Professional Poker Engine • Multi-Deck Logic • Responsive Layout • PixiJS v7',
+      'Professional Poker Engine • Multi-Deck Logic • Responsive Layout • PixiJS v7 • LaCalabaza',
   },
   es: {
     app: {
