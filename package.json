@@ -1,25 +1,23 @@
-
 {
-  "name": "poker-card-dealer",
+  "name": "copy-of-professional-poker-card-dealer",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "gsap": "^3.12.5",
-    "pixi.js": "^8.6.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.2.4",
+    "react": "^19.2.4",
+    "gsap": "^3.14.2",
+    "pixi.js": "7.4.2"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "^5.7.3",
-    "vite": "^6.0.0"
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
   }
 }

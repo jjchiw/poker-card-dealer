@@ -5,7 +5,7 @@ import { Card, CardDealerOptions, DealerEvent, Rank, Suit } from './types';
 
 /**
  * CardDealer - A self-contained module for handling poker card dealing.
- * Updated for PixiJS v8 compatibility.
+ * Focused on high-performance PixiJS rendering and GSAP animations.
  */
 export class CardDealer {
   private app: PIXI.Application;
@@ -32,14 +32,7 @@ export class CardDealer {
       deckCount: options.deckCount || 1,
     };
 
-    this.app = new PIXI.Application();
-  }
-
-  /**
-   * Initializes the PixiJS application (v8 requirement).
-   */
-  public async init(): Promise<void> {
-    await this.app.init({
+    this.app = new PIXI.Application({
       width: this.options.width,
       height: this.options.height,
       backgroundAlpha: 0,
@@ -55,8 +48,8 @@ export class CardDealer {
   }
 
   public mount(parent: HTMLElement): void {
-    if (this.app.canvas) {
-      parent.appendChild(this.app.canvas);
+    if (this.app.view) {
+      parent.appendChild(this.app.view as HTMLCanvasElement);
     }
   }
 
@@ -196,6 +189,7 @@ export class CardDealer {
   }
 
   private updateCardScale(sprite: PIXI.Sprite): void {
+    // Increased scale: card now occupies up to 75% of width or 80% of height
     const targetScale = Math.min((this.options.width * 0.75) / sprite.width, (this.options.height * 0.8) / sprite.height, 1.5);
     sprite.scale.set(targetScale);
   }
@@ -207,13 +201,13 @@ export class CardDealer {
     try {
       texture = await PIXI.Assets.load(imageUrl);
     } catch (e) {
-      texture = await this.createFallbackTexture(card);
+      texture = this.createFallbackTexture(card);
     }
 
     const sprite = new PIXI.Sprite(texture);
     sprite.anchor.set(0.5);
     sprite.x = this.options.width / 2;
-    sprite.y = -200;
+    sprite.y = -200; // Start off-screen
     this.updateCardScale(sprite);
     sprite.alpha = 0;
 
@@ -234,25 +228,20 @@ export class CardDealer {
     });
   }
 
-  private async createFallbackTexture(card: Card): Promise<PIXI.Texture> {
+  private createFallbackTexture(card: Card): PIXI.Texture {
     const graphic = new PIXI.Graphics();
+    // Bigger fallback dimensions
     const w = 240;
     const h = 340;
-    graphic.fill(0xffffff);
-    graphic.stroke({ width: 4, color: 0x000000 });
-    graphic.roundRect(0, 0, w, h, 20);
-    
+    graphic.beginFill(0xffffff);
+    graphic.lineStyle(4, 0x000000);
+    graphic.drawRoundedRect(0, 0, w, h, 20);
+    graphic.endFill();
     const color = (card.suit === 'hearts' || card.suit === 'diamonds') ? 0xff0000 : 0x000000;
     const suitSymbol = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }[card.suit];
-    const text = new PIXI.Text({ 
-      text: `${card.rank}\n${suitSymbol}`, 
-      style: { fontSize: 80, fill: color, align: 'center', fontWeight: 'bold' } 
-    });
-    text.anchor.set(0.5); 
-    text.x = w/2; 
-    text.y = h/2;
+    const text = new PIXI.Text(`${card.rank}\n${suitSymbol}`, { fontSize: 80, fill: color, align: 'center', fontWeight: 'bold' });
+    text.anchor.set(0.5); text.x = w/2; text.y = h/2;
     graphic.addChild(text);
-    
     return this.app.renderer.generateTexture(graphic);
   }
 }

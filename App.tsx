@@ -12,55 +12,42 @@ const App: React.FC = () => {
   const [intervalMs, setIntervalMs] = useState(1500);
   const [deckCount, setDeckCount] = useState(1);
   const [cardsRemaining, setCardsRemaining] = useState(0);
-  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    let dealer: CardDealer | null = null;
+    const initialWidth = containerRef.current.clientWidth || 800;
+    const initialHeight = containerRef.current.clientHeight || 600;
 
-    const initDealer = async () => {
-      setIsInitializing(true);
-      const initialWidth = containerRef.current?.clientWidth || 800;
-      const initialHeight = containerRef.current?.clientHeight || 600;
+    const dealer = new CardDealer({
+      width: initialWidth,
+      height: initialHeight,
+      assetRoot: 'https://raw.githubusercontent.com/example/assets/main/',
+      autoShuffle: true,
+      repeat: false,
+      deckCount: 1
+    });
 
-      dealer = new CardDealer({
-        width: initialWidth,
-        height: initialHeight,
-        assetRoot: 'https://raw.githubusercontent.com/example/assets/main/',
-        autoShuffle: true,
-        repeat: false,
-        deckCount: 1
-      });
+    dealer.mount(containerRef.current);
+    dealer.setInterval(intervalMs);
+    dealerRef.current = dealer;
 
-      await dealer.init();
-      
-      if (!containerRef.current) return;
-      
-      dealer.mount(containerRef.current);
-      dealer.setInterval(intervalMs);
-      dealerRef.current = dealer;
+    dealer.on('deal', ({ card, index, total }) => {
+      setCurrentCard(card);
+      setCardsRemaining(total - index);
+      setHistory((prev) => [card, ...prev].slice(0, 50));
+    });
 
-      dealer.on('deal', ({ card, index, total }) => {
-        setCurrentCard(card);
-        setCardsRemaining(total - index);
-        setHistory((prev) => [card, ...prev].slice(0, 50));
-      });
+    dealer.on('pause', () => setStatus('paused'));
+    dealer.on('resume', () => setStatus('dealing'));
+    dealer.on('complete', () => setStatus('complete'));
+    dealer.on('shuffle', () => {
+      setHistory([]);
+      setCurrentCard(null);
+      setCardsRemaining(52 * deckCount);
+    });
 
-      dealer.on('pause', () => setStatus('paused'));
-      dealer.on('resume', () => setStatus('dealing'));
-      dealer.on('complete', () => setStatus('complete'));
-      dealer.on('shuffle', () => {
-        setHistory([]);
-        setCurrentCard(null);
-        setCardsRemaining(52 * deckCount);
-      });
-
-      setCardsRemaining(52);
-      setIsInitializing(false);
-    };
-
-    initDealer();
+    setCardsRemaining(52);
 
     const handleResize = () => {
       if (containerRef.current && dealerRef.current) {
@@ -74,7 +61,7 @@ const App: React.FC = () => {
     window.addEventListener('resize', handleResize);
 
     return () => {
-      dealer?.destroy();
+      dealer.destroy();
       window.removeEventListener('resize', handleResize);
     };
   }, []);
@@ -140,21 +127,11 @@ const App: React.FC = () => {
         {/* Main Canvas Area */}
         <div className="flex-[2] bg-neutral-950 relative overflow-hidden flex items-center justify-center min-h-[50vh] md:min-h-0">
           <div ref={containerRef} className="absolute inset-0 w-full h-full" />
-          
-          {isInitializing && (
-             <div className="absolute inset-0 flex items-center justify-center bg-neutral-950 z-20">
-                <div className="flex flex-col items-center gap-4">
-                   <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
-                   <p className="text-xs font-mono text-neutral-500 uppercase tracking-widest">Initializing PixiJS Engine...</p>
-                </div>
-             </div>
-          )}
-
-          {!currentCard && !isInitializing && status === 'idle' && (
+          {!currentCard && status === 'idle' && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-neutral-600 animate-pulse px-6 text-center">
               <div className="text-8xl mb-6">🂠</div>
               <p className="text-lg font-medium">Ready to deal. Shuffle to begin session.</p>
-              <p className="text-sm mt-2 opacity-60">High-performance PixiJS Engine v8.x</p>
+              <p className="text-sm mt-2 opacity-60">High-performance PixiJS Engine v7.4</p>
             </div>
           )}
         </div>
@@ -257,7 +234,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className="p-2 md:p-3 bg-neutral-950 text-center text-[9px] md:text-[10px] text-neutral-600 border-t border-neutral-800 shrink-0">
-        Professional Poker Engine • Multi-Deck Logic • Responsive Layout • PixiJS v8
+        Professional Poker Engine • Multi-Deck Logic • Responsive Layout • PixiJS v7
       </footer>
 
       <style>{`
