@@ -236,11 +236,11 @@ export class CardDealer {
     this.clearStage();
     const imageUrl = `${this.options.assetRoot}images/${card.id}.png`;
     let texture: PIXI.Texture;
-    try {
-      texture = await PIXI.Assets.load(imageUrl);
-    } catch (e) {
-      texture = this.createFallbackTexture(card);
-    }
+    // try {
+    //   texture = await PIXI.Assets.load(imageUrl);
+    // } catch (e) {
+    texture = this.createFallbackTexture(card);
+    // }
 
     const sprite = new PIXI.Sprite(texture);
     sprite.anchor.set(0.5);
