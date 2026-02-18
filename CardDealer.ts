@@ -223,11 +223,11 @@ export class CardDealer {
   }
 
   private updateCardScale(sprite: PIXI.Sprite): void {
-    // Increased scale: card now occupies up to 75% of width or 80% of height
+    // Increased scale: card now occupies up to 85% of width or 90% of height for better visibility
     const targetScale = Math.min(
-      (this.options.width * 0.75) / sprite.width,
-      (this.options.height * 0.8) / sprite.height,
-      1.5,
+      (this.options.width * 0.85) / sprite.width,
+      (this.options.height * 0.9) / sprite.height,
+      2.0,
     );
     sprite.scale.set(targetScale);
   }
