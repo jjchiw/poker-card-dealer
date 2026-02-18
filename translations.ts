@@ -19,12 +19,17 @@ export interface Translations {
   console: {
     title: string;
     numberOfDecks: string;
+    mode: string;
     dealInterval: string;
     startDealing: string;
     pause: string;
     resume: string;
     shuffle: string;
     rewind: string;
+  };
+  modeOptions: {
+    automatic: string;
+    manual: string;
   };
   deckOptions: {
     deck1: string;
@@ -67,12 +72,17 @@ export const translations: Record<Language, Translations> = {
     console: {
       title: 'Dealer Console',
       numberOfDecks: 'Number of Decks',
+      mode: 'Mode',
       dealInterval: 'Deal Interval',
       startDealing: 'START DEALING',
       pause: 'PAUSE',
       resume: 'RESUME',
       shuffle: 'SHUFFLE',
       rewind: 'REWIND 1 STEP',
+    },
+    modeOptions: {
+      automatic: 'Automatic',
+      manual: 'Manual',
     },
     deckOptions: {
       deck1: '1 Deck (52 cards)',
@@ -114,12 +124,17 @@ export const translations: Record<Language, Translations> = {
     console: {
       title: 'Consola del Repartidor',
       numberOfDecks: 'Número de Mazos',
+      mode: 'Modo',
       dealInterval: 'Intervalo de Reparto',
       startDealing: 'COMENZAR A REPARTIR',
       pause: 'PAUSAR',
       resume: 'REANUDAR',
       shuffle: 'BARAJAR',
       rewind: 'RETROCEDER 1 PASO',
+    },
+    modeOptions: {
+      automatic: 'Automático',
+      manual: 'Manual',
     },
     deckOptions: {
       deck1: '1 Mazo (52 cartas)',

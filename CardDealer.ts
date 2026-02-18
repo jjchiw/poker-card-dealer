@@ -154,6 +154,14 @@ export class CardDealer {
     this.emit('resume');
   }
 
+  public dealOne(): void {
+    if (this.currentIndex >= this.deck.length) {
+      this.emit('complete');
+      return;
+    }
+    this.dealNext();
+  }
+
   public rewind(steps: number = 1): void {
     this.pause();
     const targetIndex = this.currentIndex - (steps + 1);

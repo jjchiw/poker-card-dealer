@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [history, setHistory] = useState<Card[]>([]);
   const [intervalSeconds, setIntervalSeconds] = useState(5);
   const [deckCount, setDeckCount] = useState(1);
+  const [mode, setMode] = useState<'automatic' | 'manual'>('automatic');
   const [cardsRemaining, setCardsRemaining] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(() =>
@@ -112,8 +113,13 @@ const App: React.FC = () => {
 
   const handleStart = () => {
     if (dealerRef.current) {
-      dealerRef.current.start();
-      setStatus('dealing');
+      if (mode === 'automatic') {
+        dealerRef.current.start();
+        setStatus('dealing');
+      } else {
+        // In manual mode, just set status to 'dealing' (manual)
+        setStatus('dealing');
+      }
     }
   };
 
@@ -137,6 +143,33 @@ const App: React.FC = () => {
     dealerRef.current?.rewind(1);
   };
 
+  const handleAdvance = () => {
+    if (dealerRef.current) {
+      dealerRef.current.dealOne();
+    }
+  };
+
+  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+
+    // Allow clicking in manual mode even when paused
+    const canNavigate =
+      status === 'dealing' || (mode === 'manual' && status === 'paused');
+    if (!canNavigate) return;
+
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const halfWidth = rect.width / 2;
+
+    if (x < halfWidth) {
+      // Left half - rewind
+      handleRewind();
+    } else {
+      // Right half - advance
+      handleAdvance();
+    }
+  };
+
   const handleIntervalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value);
     setIntervalSeconds(val);
@@ -157,6 +190,23 @@ const App: React.FC = () => {
     audioService.setEnabled(newState);
   };
 
+  const handleModeChange = (newMode: 'automatic' | 'manual') => {
+    setMode(newMode);
+
+    // If switching modes during dealing
+    if (status === 'dealing' || status === 'paused') {
+      if (newMode === 'manual') {
+        // Switching to manual: pause automatic dealing
+        dealerRef.current?.pause();
+        setStatus('paused');
+      } else {
+        // Switching to automatic: start automatic dealing
+        dealerRef.current?.resume();
+        setStatus('dealing');
+      }
+    }
+  };
+
   // Close theme selector when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -171,9 +221,9 @@ const App: React.FC = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, [isThemeSelectorOpen]);
 
-  // Progress bar animation for next card
+  // Progress bar animation for next card - Only in automatic mode
   useEffect(() => {
-    if (status !== 'dealing') {
+    if (status !== 'dealing' || mode !== 'automatic') {
       setProgress(0);
       return;
     }
@@ -190,7 +240,7 @@ const App: React.FC = () => {
       const newProgress = Math.min((elapsed / duration) * 100, 100);
       setProgress(newProgress);
 
-      if (newProgress < 100 && status === 'dealing') {
+      if (newProgress < 100 && status === 'dealing' && mode === 'automatic') {
         animationFrame = requestAnimationFrame(animate);
       }
     };
@@ -201,7 +251,7 @@ const App: React.FC = () => {
         cancelAnimationFrame(animationFrame);
       }
     };
-  }, [status, intervalSeconds, history.length]);
+  }, [status, intervalSeconds, history.length, mode]);
 
   return (
     <div
@@ -332,18 +382,46 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Main Canvas Area */}
         <div
-          className="flex-[2] relative overflow-hidden flex items-center justify-center flex-1 md:min-h-0"
+          className={`flex-[2] relative overflow-hidden flex items-center justify-center flex-1 md:min-h-0 ${
+            status === 'dealing' || (mode === 'manual' && status === 'paused')
+              ? 'cursor-pointer'
+              : ''
+          }`}
           style={{
             background: theme.colors.canvasGradient || theme.colors.canvas,
           }}
+          onClick={handleCanvasClick}
         >
           <div
             ref={containerRef}
             className="absolute top-0 left-0 right-0 canvas-height w-full"
           />
 
-          {/* Progress Bar for Next Card */}
-          {status === 'dealing' && (
+          {/* Click Navigation Indicators - Show in dealing mode or manual+paused */}
+          {(status === 'dealing' ||
+            (mode === 'manual' && status === 'paused')) && (
+            <>
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 h-full flex items-center justify-start pl-4 md:pl-8 pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
+                <div
+                  className="text-4xl md:text-6xl opacity-30"
+                  style={{ color: theme.colors.textMuted }}
+                >
+                  ◀
+                </div>
+              </div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-full flex items-center justify-end pr-4 md:pr-8 pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
+                <div
+                  className="text-4xl md:text-6xl opacity-30"
+                  style={{ color: theme.colors.textMuted }}
+                >
+                  ▶
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Progress Bar for Next Card - Only in Automatic Mode */}
+          {status === 'dealing' && mode === 'automatic' && (
             <div className="absolute bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 w-64 md:w-96 z-30">
               <div
                 className="flex items-center gap-3 px-4 py-3 rounded-full backdrop-blur-md"
@@ -375,6 +453,27 @@ const App: React.FC = () => {
             </div>
           )}
 
+          {/* Manual Mode Navigation Hint */}
+          {(status === 'dealing' || status === 'paused') &&
+            mode === 'manual' && (
+              <div className="absolute bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 z-30">
+                <div
+                  className="px-6 py-3 rounded-full backdrop-blur-md whitespace-nowrap text-xs md:text-sm font-medium"
+                  style={{
+                    backgroundColor: theme.colors.bgAlt + 'cc',
+                    border: `1px solid ${theme.colors.border}`,
+                    color: theme.colors.textMuted,
+                  }}
+                >
+                  ◀{' '}
+                  {language === 'en'
+                    ? 'Click left/right to navigate'
+                    : 'Clic izquierda/derecha para navegar'}{' '}
+                  ▶
+                </div>
+              </div>
+            )}
+
           {!currentCard && status === 'idle' && (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none animate-pulse px-6 text-center"
@@ -405,22 +504,26 @@ const App: React.FC = () => {
             </button>
           ) : (
             <>
-              {status === 'dealing' ? (
-                <button
-                  onClick={handlePause}
-                  className="flex-1 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all text-sm uppercase"
-                  style={{ backgroundColor: theme.colors.warning }}
-                >
-                  {t.console.pause}
-                </button>
-              ) : (
-                <button
-                  onClick={handleResume}
-                  className="flex-1 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all text-sm uppercase"
-                  style={{ backgroundColor: theme.colors.primary }}
-                >
-                  {t.console.resume}
-                </button>
+              {mode === 'automatic' && (
+                <>
+                  {status === 'dealing' ? (
+                    <button
+                      onClick={handlePause}
+                      className="flex-1 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all text-sm uppercase"
+                      style={{ backgroundColor: theme.colors.warning }}
+                    >
+                      {t.console.pause}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleResume}
+                      className="flex-1 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all text-sm uppercase"
+                      style={{ backgroundColor: theme.colors.primary }}
+                    >
+                      {t.console.resume}
+                    </button>
+                  )}
+                </>
               )}
             </>
           )}
@@ -491,6 +594,30 @@ const App: React.FC = () => {
                   className="text-[10px] uppercase font-bold block mb-1.5"
                   style={{ color: theme.colors.textMuted }}
                 >
+                  {t.console.mode}
+                </label>
+                <select
+                  value={mode}
+                  onChange={(e) =>
+                    handleModeChange(e.target.value as 'automatic' | 'manual')
+                  }
+                  className="w-full rounded-lg p-2.5 text-sm focus:outline-none transition-all appearance-none cursor-pointer"
+                  style={{
+                    backgroundColor: theme.colors.bg,
+                    border: `1px solid ${theme.colors.border}`,
+                    color: theme.colors.text,
+                  }}
+                >
+                  <option value="automatic">{t.modeOptions.automatic}</option>
+                  <option value="manual">{t.modeOptions.manual}</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  className="text-[10px] uppercase font-bold block mb-1.5"
+                  style={{ color: theme.colors.textMuted }}
+                >
                   {t.console.numberOfDecks}
                 </label>
                 <select
@@ -510,39 +637,41 @@ const App: React.FC = () => {
                 </select>
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label
-                    className="text-[10px] uppercase font-bold block"
-                    style={{ color: theme.colors.textMuted }}
-                  >
-                    {t.console.dealInterval}
-                  </label>
-                  <span
-                    className="text-[10px] font-mono px-1.5 py-0.5 rounded border"
+              {mode === 'automatic' && (
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label
+                      className="text-[10px] uppercase font-bold block"
+                      style={{ color: theme.colors.textMuted }}
+                    >
+                      {t.console.dealInterval}
+                    </label>
+                    <span
+                      className="text-[10px] font-mono px-1.5 py-0.5 rounded border"
+                      style={{
+                        color: theme.colors.primary,
+                        backgroundColor: theme.colors.bg,
+                        borderColor: theme.colors.border,
+                      }}
+                    >
+                      {intervalSeconds}s
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="60"
+                    step="1"
+                    value={intervalSeconds}
+                    onChange={handleIntervalChange}
+                    className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
                     style={{
-                      color: theme.colors.primary,
-                      backgroundColor: theme.colors.bg,
-                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.border,
+                      accentColor: theme.colors.primary,
                     }}
-                  >
-                    {intervalSeconds}s
-                  </span>
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="60"
-                  step="1"
-                  value={intervalSeconds}
-                  onChange={handleIntervalChange}
-                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
-                  style={{
-                    backgroundColor: theme.colors.border,
-                    accentColor: theme.colors.primary,
-                  }}
-                />
-              </div>
+              )}
             </div>
 
             {/* Desktop-only controls - Mobile has bottom bar */}
@@ -556,35 +685,50 @@ const App: React.FC = () => {
                   {t.console.startDealing}
                 </button>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {status === 'dealing' ? (
-                    <button
-                      onClick={handlePause}
-                      className="py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm uppercase"
-                      style={{ backgroundColor: theme.colors.warning }}
-                    >
-                      {t.console.pause}
-                    </button>
+                <>
+                  {mode === 'automatic' ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      {status === 'dealing' ? (
+                        <button
+                          onClick={handlePause}
+                          className="py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm uppercase"
+                          style={{ backgroundColor: theme.colors.warning }}
+                        >
+                          {t.console.pause}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleResume}
+                          className="py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm uppercase"
+                          style={{ backgroundColor: theme.colors.primary }}
+                        >
+                          {t.console.resume}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleShuffle}
+                        className="py-3.5 rounded-xl font-bold transition-all text-xs uppercase"
+                        style={{
+                          backgroundColor: theme.colors.secondary,
+                          color: theme.colors.text,
+                        }}
+                      >
+                        {t.console.shuffle}
+                      </button>
+                    </div>
                   ) : (
                     <button
-                      onClick={handleResume}
-                      className="py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm uppercase"
-                      style={{ backgroundColor: theme.colors.primary }}
+                      onClick={handleShuffle}
+                      className="w-full py-3.5 rounded-xl font-bold transition-all shadow-lg text-sm uppercase"
+                      style={{
+                        backgroundColor: theme.colors.secondary,
+                        color: theme.colors.text,
+                      }}
                     >
-                      {t.console.resume}
+                      {t.console.shuffle}
                     </button>
                   )}
-                  <button
-                    onClick={handleShuffle}
-                    className="py-3.5 rounded-xl font-bold transition-all text-xs uppercase"
-                    style={{
-                      backgroundColor: theme.colors.secondary,
-                      color: theme.colors.text,
-                    }}
-                  >
-                    {t.console.shuffle}
-                  </button>
-                </div>
+                </>
               )}
 
               <button
