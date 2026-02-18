@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Professional Poker Card Dealer",
+  "description": "A self-contained PixiJS module for dealing cards with shuffle, pause, rewind, and repeat capabilities, featuring GSAP animations and audio feedback.",
+  "requestFramePermissions": []
+}
