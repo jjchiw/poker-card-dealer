@@ -1,4 +1,3 @@
-
 import * as PIXI from 'pixi.js';
 import { gsap } from 'gsap';
 import { Card, CardDealerOptions, DealerEvent, Rank, Suit } from './types';
@@ -19,14 +18,30 @@ export class CardDealer {
   private currentSprite: PIXI.Sprite | null = null;
   private eventHandlers: Map<string, Array<(data?: any) => void>> = new Map();
 
-  private readonly RANKS: Rank[] = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  private readonly RANKS: Rank[] = [
+    'A',
+    '2',
+    '3',
+    '4',
+    '5',
+    '6',
+    '7',
+    '8',
+    '9',
+    '10',
+    'J',
+    'Q',
+    'K',
+  ];
   private readonly SUITS: Suit[] = ['spades', 'hearts', 'diamonds', 'clubs'];
 
   constructor(options: CardDealerOptions) {
     this.options = {
       width: options.width || 800,
       height: options.height || 600,
-      assetRoot: options.assetRoot.endsWith('/') ? options.assetRoot : `${options.assetRoot}/`,
+      assetRoot: options.assetRoot.endsWith('/')
+        ? options.assetRoot
+        : `${options.assetRoot}/`,
       autoShuffle: options.autoShuffle ?? true,
       repeat: options.repeat ?? false,
       deckCount: options.deckCount || 1,
@@ -69,11 +84,11 @@ export class CardDealer {
     for (let d = 0; d < this.options.deckCount; d++) {
       for (const suit of this.SUITS) {
         for (const rank of this.RANKS) {
-          this.deck.push({ 
-            rank, 
-            suit, 
+          this.deck.push({
+            rank,
+            suit,
             id: `${rank}_${suit}`,
-            uniqueId: `${rank}_${suit}_d${d}`
+            uniqueId: `${rank}_${suit}_d${d}`,
           });
         }
       }
@@ -89,6 +104,21 @@ export class CardDealer {
   }
 
   public async shuffle(): Promise<void> {
+    // Stop any ongoing dealing
+    this.isPlaying = false;
+    if (this.timerId) {
+      clearTimeout(this.timerId);
+      this.timerId = null;
+    }
+    if (this.currentTween) {
+      this.currentTween.kill();
+      this.currentTween = null;
+    }
+
+    // Clear the canvas
+    this.clearStage();
+
+    // Shuffle the deck
     const array = new Uint32Array(this.deck.length);
     window.crypto.getRandomValues(array);
     for (let i = this.deck.length - 1; i > 0; i--) {
@@ -176,7 +206,11 @@ export class CardDealer {
     this.currentIndex++;
 
     await this.animateCard(card);
-    this.emit('deal', { card, index: this.currentIndex, total: this.deck.length });
+    this.emit('deal', {
+      card,
+      index: this.currentIndex,
+      total: this.deck.length,
+    });
     if (this.isPlaying) this.scheduleNextDeal();
   }
 
@@ -190,7 +224,11 @@ export class CardDealer {
 
   private updateCardScale(sprite: PIXI.Sprite): void {
     // Increased scale: card now occupies up to 75% of width or 80% of height
-    const targetScale = Math.min((this.options.width * 0.75) / sprite.width, (this.options.height * 0.8) / sprite.height, 1.5);
+    const targetScale = Math.min(
+      (this.options.width * 0.75) / sprite.width,
+      (this.options.height * 0.8) / sprite.height,
+      1.5,
+    );
     sprite.scale.set(targetScale);
   }
 
@@ -237,10 +275,20 @@ export class CardDealer {
     graphic.lineStyle(4, 0x000000);
     graphic.drawRoundedRect(0, 0, w, h, 20);
     graphic.endFill();
-    const color = (card.suit === 'hearts' || card.suit === 'diamonds') ? 0xff0000 : 0x000000;
-    const suitSymbol = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }[card.suit];
-    const text = new PIXI.Text(`${card.rank}\n${suitSymbol}`, { fontSize: 80, fill: color, align: 'center', fontWeight: 'bold' });
-    text.anchor.set(0.5); text.x = w/2; text.y = h/2;
+    const color =
+      card.suit === 'hearts' || card.suit === 'diamonds' ? 0xff0000 : 0x000000;
+    const suitSymbol = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }[
+      card.suit
+    ];
+    const text = new PIXI.Text(`${card.rank}\n${suitSymbol}`, {
+      fontSize: 80,
+      fill: color,
+      align: 'center',
+      fontWeight: 'bold',
+    });
+    text.anchor.set(0.5);
+    text.x = w / 2;
+    text.y = h / 2;
     graphic.addChild(text);
     return this.app.renderer.generateTexture(graphic);
   }
