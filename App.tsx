@@ -71,7 +71,7 @@ const App: React.FC = () => {
       setCardsRemaining(total - index);
       // Only add to history if not rewinding
       if (!isRewindingRef.current) {
-        setHistory((prev) => [card, ...prev].slice(0, 50));
+        setHistory((prev) => [card, ...prev].slice(0, total));
       }
       isRewindingRef.current = false;
       // Play audio announcement
