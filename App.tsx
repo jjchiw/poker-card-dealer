@@ -344,7 +344,7 @@ const App: React.FC = () => {
 
           {/* Progress Bar for Next Card */}
           {status === 'dealing' && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-64 md:w-96 z-10">
+            <div className="absolute bottom-20 md:bottom-4 left-1/2 -translate-x-1/2 w-64 md:w-96 z-30">
               <div
                 className="flex items-center gap-3 px-4 py-3 rounded-full backdrop-blur-md"
                 style={{
